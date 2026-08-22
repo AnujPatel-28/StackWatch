@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { StatusCard } from "@/components/ui/status-card";
+import { RunScraperControl } from "@/components/scraper/run-scraper-control";
 
 const statusCards = [
   { label: "Documentation sources", value: "0 connected", detail: "Add your first source when ingestion is ready.", tone: "mint" as const },
@@ -36,6 +37,8 @@ export default function DashboardPage() {
         <section aria-label="MVP status" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {statusCards.map((card) => <StatusCard key={card.label} {...card} />)}
         </section>
+
+        <RunScraperControl />
 
         <section className="mt-8 rounded-2xl border border-ink/10 bg-ink p-6 text-white shadow-soft sm:p-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
