@@ -336,6 +336,6 @@ This completes the monitoring loop outside the dashboard:
 
 ## Demo video
 
-**YouTube:** _Add your YouTube demo link here_
+**YouTube:** https://youtu.be/e8eEGbCnbjE
 
 The screenshots above document the complete demo flow and can also be used as supporting material for the submission.
