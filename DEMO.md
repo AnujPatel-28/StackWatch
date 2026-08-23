@@ -336,6 +336,6 @@ This completes the monitoring loop outside the dashboard:
 
 ## Demo video
 
-**YouTube:** https://youtu.be/e8eEGbCnbjE
+**YouTube:** https://youtu.be/e8eEGbCnbjE (Note: Sorry for the quality and the distraction in the vedio as while recording I was not at my place and commuting)
 
 The screenshots above document the complete demo flow and can also be used as supporting material for the submission.
