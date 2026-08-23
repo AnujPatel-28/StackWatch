@@ -6,6 +6,13 @@ StackWatch is a documentation intelligence layer for software projects.
 
 This repository is the StackWatch application. It is intentionally separate from the controlled public documentation fixture in `stackwatch-demo-docs`, which is not modified here.
 
+---
+
+> 📖 **Want to see how it works?**
+> Read [DEMO.md](./DEMO.md) for a full step-by-step walkthrough of the demo flow — from healthy baseline through extraction degradation, Bright Data self-healing, approval gate, recovery, and Telegram alerts — with screenshots at every stage.
+
+---
+
 ## Current MVP vertical slice
 
 The first slice contains:
