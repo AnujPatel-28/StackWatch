@@ -10,6 +10,16 @@ export class InMemorySnapshotRepository implements SnapshotRepository {
     return records.at(-1) ?? null;
   }
 
+  async getLatestHealthySnapshot(sourceUrl: string): Promise<SnapshotRecord | null> {
+    const records = this.records.get(sourceUrl) ?? [];
+    return records.findLast((record) => record.quality.qualityStatus === "healthy") ?? null;
+  }
+
+  async listSnapshots(sourceUrl: string, limit = 10): Promise<SnapshotRecord[]> {
+    const records = this.records.get(sourceUrl) ?? [];
+    return records.slice(Math.max(0, records.length - limit)).reverse();
+  }
+
   async saveSnapshot(snapshot: NewSnapshotRecord): Promise<SnapshotRecord> {
     const record: SnapshotRecord = { ...snapshot, id: randomUUID() };
     const records = this.records.get(snapshot.sourceUrl) ?? [];
@@ -18,4 +28,3 @@ export class InMemorySnapshotRepository implements SnapshotRepository {
     return record;
   }
 }
-

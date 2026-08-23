@@ -13,10 +13,12 @@ export type BrightDataClientOptions = {
 
 export class BrightDataApiError extends Error {
   readonly statusCode?: number;
+  readonly responseBody?: unknown;
 
-  constructor(message: string, statusCode?: number) {
+  constructor(message: string, statusCode?: number, responseBody?: unknown) {
     super(message);
     this.statusCode = statusCode;
+    this.responseBody = responseBody;
     this.name = "BrightDataApiError";
   }
 }

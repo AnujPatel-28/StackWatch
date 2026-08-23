@@ -5,6 +5,7 @@ import { normalizeBrightDataResult } from "../lib/scraper/normalize.ts";
 import { evaluateExtractionQuality } from "../lib/scraper/quality.ts";
 import { executeScrape } from "../lib/scraper/run-scrape.ts";
 import { InMemorySnapshotRepository } from "../lib/snapshots/in-memory-repository.ts";
+import { snapshotsHaveChanged } from "../lib/snapshots/compare.ts";
 
 const sourceUrl = "https://stackwatch-demo.vercel.app/authentication";
 
@@ -42,6 +43,69 @@ test("normalizes a structured Bright Data result", () => {
   assert.equal(snapshot.pages.length, 3);
   assert.deepEqual(snapshot.pages[0].apiEndpoints, [{ method: "GET", path: "/authentication", description: "Check authentication." }]);
   assert.deepEqual(snapshot.pages[0].codeExamples, [{ label: "JavaScript", code: "client.authenticate(token)" }]);
+});
+
+test("uses Bright Data product page fields instead of the shared input URL", () => {
+  const raw = [
+    {
+      page_title: "Authentication",
+      description: "Authenticate every API request.",
+      product_page_url: sourceUrl,
+      input: { url: sourceUrl },
+    },
+    {
+      page_title: "Projects API",
+      description: "Create and manage projects.",
+      product_page_url: "https://stackwatch-demo.vercel.app/api/projects",
+      input: { url: sourceUrl },
+    },
+  ];
+  const snapshot = normalizeBrightDataResult(raw, sourceUrl);
+  const reorderedSnapshot = normalizeBrightDataResult([...raw].reverse(), sourceUrl);
+
+  assert.equal(snapshot.pages.length, 2);
+  assert.deepEqual(snapshot.pages.map((page) => page.url), [sourceUrl, "https://stackwatch-demo.vercel.app/api/projects"]);
+  assert.deepEqual(reorderedSnapshot.pages.map((page) => page.url), snapshot.pages.map((page) => page.url));
+  assert.equal(snapshot.pages[0].title, "Authentication");
+  assert.equal(snapshot.pages[1].description, "Create and manage projects.");
+});
+
+test("ignores URL-only Bright Data records without documentation content", () => {
+  const snapshot = normalizeBrightDataResult([{
+    product_page_url: "https://github.com/AnujPatel-28/stackwatch-demo-docs",
+    input: { url: sourceUrl },
+  }], sourceUrl);
+
+  assert.deepEqual(snapshot.pages, []);
+});
+
+test("identical normalized snapshots ignore transient metadata and non-semantic ordering", async () => {
+  const repository = new InMemorySnapshotRepository();
+  const first = await executeScrape({ sourceUrl, scraper: { scrape: async () => healthyRawResult() }, repository });
+  const reorderedRaw = healthyRawResult().reverse().map((page) => ({
+    ...page,
+    sections: [...page.sections].reverse(),
+    api_endpoints: [...page.api_endpoints].reverse(),
+    code_examples: [...page.code_examples].reverse(),
+  }));
+  const second = await executeScrape({ sourceUrl, scraper: { scrape: async () => reorderedRaw }, repository });
+
+  assert.equal(second.comparison.changeDetected, false);
+  assert.equal(snapshotsHaveChanged(
+    { ...first.snapshot, capturedAt: "2026-08-23T00:00:00.000Z" },
+    { ...second.snapshot, capturedAt: "2026-08-23T00:05:00.000Z" },
+  ), false);
+});
+
+test("a real normalized documentation change sets changeDetected", async () => {
+  const repository = new InMemorySnapshotRepository();
+  await executeScrape({ sourceUrl, scraper: { scrape: async () => healthyRawResult() }, repository });
+  const changed = await executeScrape({
+    sourceUrl,
+    scraper: { scrape: async () => healthyRawResult().map((page, index) => index === 0 ? { ...page, description: "Updated authentication behavior." } : page) },
+    repository,
+  });
+  assert.equal(changed.comparison.changeDetected, true);
 });
 
 test("canonicalizes and deduplicates equivalent page URLs", () => {

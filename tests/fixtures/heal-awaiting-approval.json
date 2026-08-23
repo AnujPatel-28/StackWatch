@@ -1,0 +1,53 @@
+{
+  "id": "ia_mt5yvpzv20lm5o2tyw",
+  "status": "pending_answer",
+  "step": "user_approval",
+  "success": true,
+  "completed_steps": [
+    "planner",
+    "control_preview_runner",
+    "step_advance",
+    "control_preview_runner",
+    "code_fixer",
+    "step_preview_runner",
+    "request_fulfillment_validator",
+    "step_advance"
+  ],
+  "preview_result": [
+    {
+      "page_title": "Build with ForgeKit",
+      "product": "GETTING STARTED",
+      "api_version": "ForgeKit docs · API version 3 · Last updated August 2026",
+      "description": "ForgeKit gives teams a small, predictable API for...ceiving events, and tracking technology changes.",
+      "base_url": "curl https://api.forgekit.dev/api/projects -H \"Au...ve_your_key\" -H \"Content-Type: application/json\"",
+      "sections": [
+        {
+          "heading": "Overview",
+          "content": "Welcome to the ForgeKit developer platform. This ...t. All examples use the current ForgeKit API v3."
+        },
+        {
+          "heading": "Overview",
+          "content": "Welcome to the ForgeKit developer platform. This ...t. All examples use the current ForgeKit API v3."
+        },
+        "2 more items"
+      ],
+      "api_endpoints": [],
+      "code_examples": [
+        {
+          "label": "2. Create your first project",
+          "code": "curl https://api.forgekit.dev/api/projects -H \"Au...ve_your_key\" -H \"Content-Type: application/json\""
+        }
+      ],
+      "product_page_url": "https://stackwatch-demo.vercel.app/"
+    }
+  ],
+  "diff": {
+    "title": "View refactor changes",
+    "template_a": {
+      "steps": 2
+    },
+    "template_b": {
+      "steps": 2
+    }
+  }
+}

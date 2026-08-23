@@ -1,4 +1,5 @@
 import { InMemorySnapshotRepository } from "./in-memory-repository";
+import { InsforgeSnapshotRepository } from "./insforge-repository";
 import type { SnapshotRepository } from "./repository";
 
 let developmentRepository: SnapshotRepository | undefined;
@@ -11,7 +12,11 @@ export function createSnapshotRepositoryFromEnv(): SnapshotRepository {
     return developmentRepository;
   }
   if (configuredRepository === "insforge" || configuredRepository === "postgres" || configuredRepository === "postgresql") {
-    throw new Error("A real snapshot repository is not implemented because InsForge/PostgreSQL configuration is not available yet.");
+    const baseUrl = process.env.INSFORGE_URL;
+    const apiKey = process.env.INSFORGE_API_KEY;
+    if (!baseUrl) throw new Error("INSFORGE_URL is required when SNAPSHOT_REPOSITORY=insforge.");
+    if (!apiKey) throw new Error("INSFORGE_API_KEY is required when SNAPSHOT_REPOSITORY=insforge.");
+    return new InsforgeSnapshotRepository({ baseUrl, apiKey });
   }
   throw new Error("SNAPSHOT_REPOSITORY must be configured. Use memory for development or provide a production repository adapter.");
 }

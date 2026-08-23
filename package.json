@@ -3,14 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "clean": "Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Remove-Item -Force tsconfig.tsbuildinfo -ErrorAction SilentlyContinue",
     "dev": "next dev",
+    "dev:clean": "npm run clean && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/scraper.test.ts"
+    "test": "node --experimental-strip-types --test \"tests/**/*.test.ts\""
   },
   "dependencies": {
+    "@insforge/sdk": "^1.5.2",
     "next": "^15.5.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

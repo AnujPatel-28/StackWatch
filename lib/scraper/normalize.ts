@@ -110,10 +110,10 @@ function normalizePage(raw: unknown, sourceUrl: string): NormalizedDocumentation
   const record = asRecord(raw);
   if (!record) return null;
   const input = asRecord(record.input);
-  const rawUrl = firstString(record, "url", "sourceUrl", "pageUrl") || firstString(input ?? {}, "url");
+  const rawUrl = firstString(record, "url", "sourceUrl", "pageUrl", "product_page_url") || firstString(input ?? {}, "url");
   const page = {
     url: canonicalizeUrl(rawUrl || sourceUrl),
-    title: firstString(record, "title", "pageTitle", "name"),
+    title: firstString(record, "title", "pageTitle", "page_title", "name"),
     product: firstString(record, "product", "productName"),
     apiVersion: firstString(record, "apiVersion", "api_version", "version"),
     description: firstString(record, "description", "summary", "intro"),
@@ -122,7 +122,7 @@ function normalizePage(raw: unknown, sourceUrl: string): NormalizedDocumentation
     codeExamples: asCodeExamples(record.codeExamples ?? record.code_examples),
   };
   const hasMeaningfulContent = Boolean(page.title || page.description || page.sections.length || page.apiEndpoints.length || page.codeExamples.length);
-  if (!rawUrl && !hasMeaningfulContent) return null;
+  if (!rawUrl || !hasMeaningfulContent) return null;
   if (!page.url) return null;
   return page;
 }
@@ -135,5 +135,11 @@ export function normalizeBrightDataResult(raw: unknown, sourceUrl: string, captu
     const existing = pagesByUrl.get(page.url);
     pagesByUrl.set(page.url, existing ? mergePages(existing, page) : page);
   }
-  return { sourceUrl: canonicalizeUrl(sourceUrl) || sourceUrl, capturedAt, pages: [...pagesByUrl.values()] };
+  const canonicalSourceUrl = canonicalizeUrl(sourceUrl) || sourceUrl;
+  const pages = [...pagesByUrl.values()].sort((left, right) => {
+    if (left.url === canonicalSourceUrl) return -1;
+    if (right.url === canonicalSourceUrl) return 1;
+    return left.url.localeCompare(right.url);
+  });
+  return { sourceUrl: canonicalSourceUrl, capturedAt, pages };
 }

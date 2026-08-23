@@ -1,3 +1,6 @@
+import type { ChangeReport } from "../change-detection/detect.ts";
+import type { TelegramDelivery } from "../notifications/telegram";
+
 export type NormalizedSection = {
   heading: string;
   content: string;
@@ -54,9 +57,14 @@ export type ExtractionQuality = {
   degradationReason?: string;
 };
 
+export type ScrapeRunStatus = "baseline" | "unchanged" | "changed" | "partial" | "degraded" | "failed";
+
 export type ScrapeComparisonMetadata = {
+  runStatus: ScrapeRunStatus;
+  changeReport?: ChangeReport;
   hasBaseline: boolean;
   previousSnapshotId?: string;
+  baselineSnapshotId?: string;
   currentSnapshotId?: string;
   snapshotSaved: boolean;
   changeDetected: boolean;
@@ -69,6 +77,7 @@ export type ScrapeApiResponse =
       quality: ExtractionQuality;
       snapshot: NormalizedDocumentationSnapshot;
       comparison: ScrapeComparisonMetadata;
+      notification?: TelegramDelivery;
     }
   | {
       success: false;

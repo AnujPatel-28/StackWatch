@@ -13,3 +13,22 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .DS_Store
+
+# InsForge & AI agent skills
+.insforge
+.agent
+.agents
+.augment
+.claude
+.cline
+.github/copilot*
+.kilocode
+.qoder
+.qwen
+.roo
+.trae
+.windsurf
+
+# Internal implementation notes — not for the public repo
+HANDOFF.md
+check.md
