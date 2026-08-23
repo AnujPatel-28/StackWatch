@@ -20,7 +20,7 @@ The first slice contains:
 - Domain types for projects, technologies, documentation sources and snapshots, extraction health, changes, impact assessments, recommendations, and notifications.
 - An environment variable example with reserved integration names.
 
-Bright Data is the only connected product integration in this slice. There is no database persistence, AI analysis, Telegram, authentication, automatic healing, scheduling, or background job system. The scrape result is normalized in memory and returned to the caller only.
+Bright Data and the snapshot repository boundary are present in this slice. Development uses an isolated in-memory repository when `SNAPSHOT_REPOSITORY=memory`; no InsForge/PostgreSQL adapter is configured yet. There is no AI analysis, Telegram, authentication, automatic healing, scheduling, or background job system.
 
 ## Architecture
 
@@ -37,6 +37,7 @@ lib/impact-analysis/    Project impact contracts
 lib/notifications/      Delivery contracts
 lib/projects/           Project persistence contracts
 app/api/scrape/         Manual read-only scrape endpoint
+lib/snapshots/          Snapshot record, repository, comparison, and development adapter
 ```
 
 ## Local development
@@ -56,10 +57,16 @@ npm run build
 npm test
 ```
 
+## Snapshot persistence
+
+The scrape route retrieves the latest snapshot before triggering Bright Data, compares the new normalized result against it, and saves successful normalized results with their quality metadata. Failed or malformed results are not saved as baselines.
+
+`SNAPSHOT_REPOSITORY=memory` is a development-only process-local repository. It is not durable across restarts or safe as production persistence. A production InsForge/PostgreSQL adapter still requires database configuration and an implementation of `SnapshotRepository`.
+
 ## Bright Data API assumption
 
 The adapter follows the requested async real-time flow: `POST /dca/trigger_immediate?collector=<collector>` with `{ "url": "..." }`, then `GET /dca/get_result?response_id=<id>` until a non-pending result is returned. Bright Data documentation also describes other Scraper Studio collection modes, including batch `collection_id` plus `/dca/dataset`; if collector delivery settings require that mode, the adapter’s result polling contract will need to be adjusted before production use.
 
 ## Next implementation step
 
-Persist the normalized snapshot and quality result after this manual scrape succeeds. Add a database migration only once the InsForge/PostgreSQL project configuration is available.
+Replace the development repository with a real InsForge/PostgreSQL `SnapshotRepository` once database configuration is available.

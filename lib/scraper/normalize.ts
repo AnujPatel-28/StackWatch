@@ -13,7 +13,7 @@ function asRecord(value: unknown): RecordValue | null {
 }
 
 function asString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : value === null || value === undefined ? "" : String(value).trim();
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function firstString(record: RecordValue, ...keys: string[]): string {
@@ -24,47 +24,63 @@ function firstString(record: RecordValue, ...keys: string[]): string {
   return "";
 }
 
-function asRecordArray(value: unknown): RecordValue[] {
-  return Array.isArray(value) ? value.map(asRecord).filter((item): item is RecordValue => item !== null) : [];
+function canonicalizeUrl(value: string): string {
+  const candidate = asString(value);
+  if (!candidate) return "";
+  try {
+    const url = new URL(candidate);
+    url.hash = "";
+    if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, "");
+    return url.toString();
+  } catch {
+    return candidate.replace(/#.*$/, "").replace(/\/+$/, "");
+  }
 }
 
 function asSections(value: unknown): NormalizedSection[] {
   if (!Array.isArray(value)) return [];
   return value.map((item): NormalizedSection | null => {
-    if (typeof item === "string") return { heading: "", content: item.trim() };
+    if (typeof item === "string") {
+      const content = item.trim();
+      return content ? { heading: "", content } : null;
+    }
     const record = asRecord(item);
     if (!record) return null;
-    return {
-      heading: firstString(record, "heading", "title", "name"),
-      content: firstString(record, "content", "text", "body", "description"),
-    };
-  }).filter((item): item is NormalizedSection => item !== null && Boolean(item.heading || item.content));
+    const content = firstString(record, "content", "text", "body", "description");
+    return content ? { heading: firstString(record, "heading", "title", "name"), content } : null;
+  }).filter((item): item is NormalizedSection => item !== null);
 }
 
 function asApiEndpoints(value: unknown): NormalizedApiEndpoint[] {
   if (!Array.isArray(value)) return [];
-  return value.map((item): NormalizedApiEndpoint | null => {
+  const endpoints = new Map<string, NormalizedApiEndpoint>();
+  value.forEach((item): void => {
     const record = asRecord(item);
-    if (!record) return null;
-    return {
+    if (!record) return;
+    const endpoint = {
       method: firstString(record, "method", "httpMethod").toUpperCase(),
       path: firstString(record, "path", "url", "endpoint"),
       description: firstString(record, "description", "summary", "details"),
     };
-  }).filter((item): item is NormalizedApiEndpoint => item !== null && Boolean(item.method || item.path || item.description));
+    if (!endpoint.method && !endpoint.path && !endpoint.description) return;
+    const key = endpoint.method || endpoint.path ? `${endpoint.method}|${endpoint.path}` : endpoint.description;
+    if (!endpoints.has(key)) endpoints.set(key, endpoint);
+  });
+  return [...endpoints.values()];
 }
 
 function asCodeExamples(value: unknown): NormalizedCodeExample[] {
   if (!Array.isArray(value)) return [];
-  return value.map((item): NormalizedCodeExample | null => {
-    if (typeof item === "string") return { label: "Example", code: item.trim() };
+  const examples = new Map<string, NormalizedCodeExample>();
+  value.forEach((item): void => {
     const record = asRecord(item);
-    if (!record) return null;
-    return {
-      label: firstString(record, "label", "title", "language", "name") || "Example",
-      code: firstString(record, "code", "content", "text", "snippet"),
-    };
-  }).filter((item): item is NormalizedCodeExample => item !== null && Boolean(item.code));
+    const code = typeof item === "string" ? item.trim() : record ? firstString(record, "code", "content", "text", "snippet") : "";
+    if (!code) return;
+    const example = { label: record ? firstString(record, "label", "title", "language", "name") || "Example" : "Example", code };
+    const key = `${example.label}|${example.code}`;
+    if (!examples.has(key)) examples.set(key, example);
+  });
+  return [...examples.values()];
 }
 
 function unwrapRows(raw: unknown): unknown[] {
@@ -77,12 +93,26 @@ function unwrapRows(raw: unknown): unknown[] {
   return [raw];
 }
 
+function mergePages(existing: NormalizedDocumentationPage, incoming: NormalizedDocumentationPage): NormalizedDocumentationPage {
+  return {
+    url: existing.url,
+    title: existing.title || incoming.title,
+    product: existing.product || incoming.product,
+    apiVersion: existing.apiVersion || incoming.apiVersion,
+    description: existing.description || incoming.description,
+    sections: [...existing.sections, ...incoming.sections],
+    apiEndpoints: asApiEndpoints([...existing.apiEndpoints, ...incoming.apiEndpoints]),
+    codeExamples: asCodeExamples([...existing.codeExamples, ...incoming.codeExamples]),
+  };
+}
+
 function normalizePage(raw: unknown, sourceUrl: string): NormalizedDocumentationPage | null {
   const record = asRecord(raw);
   if (!record) return null;
   const input = asRecord(record.input);
-  return {
-    url: firstString(record, "url", "sourceUrl", "pageUrl") || firstString(input ?? {}, "url") || sourceUrl,
+  const rawUrl = firstString(record, "url", "sourceUrl", "pageUrl") || firstString(input ?? {}, "url");
+  const page = {
+    url: canonicalizeUrl(rawUrl || sourceUrl),
     title: firstString(record, "title", "pageTitle", "name"),
     product: firstString(record, "product", "productName"),
     apiVersion: firstString(record, "apiVersion", "api_version", "version"),
@@ -91,9 +121,19 @@ function normalizePage(raw: unknown, sourceUrl: string): NormalizedDocumentation
     apiEndpoints: asApiEndpoints(record.apiEndpoints ?? record.api_endpoints),
     codeExamples: asCodeExamples(record.codeExamples ?? record.code_examples),
   };
+  const hasMeaningfulContent = Boolean(page.title || page.description || page.sections.length || page.apiEndpoints.length || page.codeExamples.length);
+  if (!rawUrl && !hasMeaningfulContent) return null;
+  if (!page.url) return null;
+  return page;
 }
 
 export function normalizeBrightDataResult(raw: unknown, sourceUrl: string, capturedAt = new Date().toISOString()): NormalizedDocumentationSnapshot {
-  const pages = unwrapRows(raw).map((row) => normalizePage(row, sourceUrl)).filter((page): page is NormalizedDocumentationPage => page !== null);
-  return { sourceUrl, capturedAt, pages };
+  const pagesByUrl = new Map<string, NormalizedDocumentationPage>();
+  for (const row of unwrapRows(raw)) {
+    const page = normalizePage(row, sourceUrl);
+    if (!page) continue;
+    const existing = pagesByUrl.get(page.url);
+    pagesByUrl.set(page.url, existing ? mergePages(existing, page) : page);
+  }
+  return { sourceUrl: canonicalizeUrl(sourceUrl) || sourceUrl, capturedAt, pages: [...pagesByUrl.values()] };
 }

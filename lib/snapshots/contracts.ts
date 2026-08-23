@@ -1,6 +1,2 @@
-import type { DocumentationSnapshot, ID } from "@/lib/types";
-
-export interface SnapshotStore {
-  save(snapshot: DocumentationSnapshot): Promise<DocumentationSnapshot>;
-  getLatest(sourceId: ID): Promise<DocumentationSnapshot | null>;
-}
+export type { NewSnapshotRecord, SnapshotRecord } from "./types";
+export type { SnapshotRepository } from "./repository";

@@ -35,14 +35,32 @@ export type ExtractionQualityStatus = "healthy" | "partial" | "degraded" | "fail
 
 export type ExtractionQuality = {
   pagesFound: number;
+  uniquePages: number;
   pagesWithTitles: number;
   pagesWithSections: number;
+  pagesWithMeaningfulContent: number;
+  pagesWithDescriptions: number;
   totalSections: number;
   totalApiEndpoints: number;
   totalCodeExamples: number;
+  structuredContentCount: number;
+  titleCoverage: number;
+  meaningfulContentCoverage: number;
+  descriptionCoverage: number;
+  structuredContentCoverage: number;
   qualityScore: number;
   qualityStatus: ExtractionQualityStatus;
   explanation: string;
+  degradationReason?: string;
+};
+
+export type ScrapeComparisonMetadata = {
+  hasBaseline: boolean;
+  previousSnapshotId?: string;
+  currentSnapshotId?: string;
+  snapshotSaved: boolean;
+  changeDetected: boolean;
+  degradationReason?: string;
 };
 
 export type ScrapeApiResponse =
@@ -50,6 +68,7 @@ export type ScrapeApiResponse =
       success: true;
       quality: ExtractionQuality;
       snapshot: NormalizedDocumentationSnapshot;
+      comparison: ScrapeComparisonMetadata;
     }
   | {
       success: false;
